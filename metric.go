@@ -6,6 +6,7 @@ import (
 
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 )
 
 func fetchPushTimeMetric(
@@ -18,7 +19,7 @@ func fetchPushTimeMetric(
 	}
 	defer resp.Body.Close()
 
-	parser := new(expfmt.TextParser)
+	parser := expfmt.NewTextParser(model.UTF8Validation)
 	metricFamilies, err := parser.TextToMetricFamilies(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse metrics: %w", err)
@@ -43,6 +44,6 @@ func extractMetadata(
 			instance = label.GetValue()
 		}
 	}
-	pushTime = time.Unix(int64(metric.GetGauge().GetValue()), 0)
+	pushTime = time.Unix(int64(metric.GetGauge().GetValue()), 0).UTC()
 	return
 }
