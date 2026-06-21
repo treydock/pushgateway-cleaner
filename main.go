@@ -41,8 +41,8 @@ func main() {
 
 	log.Debug("Startup config",
 		FlagVerbose, *verbose,
-		FlagTTL, *ttl,
-		FlagSyncPeriod, *syncPeriod,
+		FlagTTL, ttl.Seconds(),
+		FlagSyncPeriod, syncPeriod.Seconds(),
 		FlagPushgatewayURL, *pushgatewayURL,
 	)
 
@@ -79,12 +79,22 @@ func main() {
 				metricLog.Debug(
 					"Deleting metric group since it's older than the TTL",
 				)
-				url, _ := url.Parse(fmt.Sprintf(
-					"%s/metrics/job/%s/instance/%s",
-					*pushgatewayURL,
-					jobLabel,
-					instanceLabel,
-				))
+				var url *url.URL
+				if instanceLabel == "" {
+					url, _ = url.Parse(fmt.Sprintf(
+						"%s/metrics/job/%s",
+						*pushgatewayURL,
+						jobLabel,
+					))
+				} else {
+					url, _ = url.Parse(fmt.Sprintf(
+						"%s/metrics/job/%s/instance/%s",
+						*pushgatewayURL,
+						jobLabel,
+						instanceLabel,
+					))
+				}
+
 				_, err := httpClient.Do(&http.Request{
 					Method: http.MethodDelete,
 					URL:    url,
@@ -93,8 +103,9 @@ func main() {
 					metricLog.Error("Error deleting metric group", "error", err)
 				}
 			} else {
+				timeUntil := *ttl - time.Since(pushTime)
 				metricLog.With(
-					"time_until_delete", *ttl-time.Since(pushTime),
+					"time_until_delete", timeUntil.Seconds(),
 				).Debug("Not deleting metric group")
 			}
 		}
