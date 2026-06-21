@@ -103,9 +103,9 @@ func main() {
 					metricLog.Error("Error deleting metric group", "error", err)
 				}
 			} else {
-				timeUtil := *ttl - time.Since(pushTime)
+				timeUntil := *ttl - time.Since(pushTime)
 				metricLog.With(
-					"time_until_delete", timeUtil.Seconds(),
+					"time_until_delete", timeUntil.Seconds(),
 				).Debug("Not deleting metric group")
 			}
 		}
