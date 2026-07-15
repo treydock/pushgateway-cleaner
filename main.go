@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"slices"
+	"strings"
 	"time"
 )
 
@@ -31,6 +33,11 @@ func main() {
 		"How often to check for old metrics",
 	)
 	pushgatewayURL := flag.String(FlagPushgatewayURL, FlagPushgatewayURLDefault, "Pushgateway URL")
+	excludeJobs := flag.String(
+		FlagExcludeJobs,
+		FlagExcludeJobsDefault,
+		"Jobs to exclude from cleanup, comma separated",
+	)
 	flag.Parse()
 
 	if *verbose {
@@ -38,12 +45,14 @@ func main() {
 	}
 
 	ticker := time.NewTicker(*syncPeriod)
+	excludeJobsSlice := strings.Split(*excludeJobs, ",")
 
 	log.Debug("Startup config",
 		FlagVerbose, *verbose,
 		FlagTTL, ttl.Seconds(),
 		FlagSyncPeriod, syncPeriod.Seconds(),
 		FlagPushgatewayURL, *pushgatewayURL,
+		FlagExcludeJobs, *excludeJobs,
 	)
 
 	httpClient := &http.Client{
@@ -65,7 +74,6 @@ func main() {
 			log.Error("Error fetching or parsing metrics", "error", err)
 			continue
 		}
-
 		for _, metric := range pushTimeMetric.GetMetric() {
 			jobLabel, instanceLabel, pushTime := extractMetadata(metric)
 			metricLog := log.With(
@@ -74,6 +82,11 @@ func main() {
 				"push_time", pushTime,
 			)
 			metricLog.Debug("Found metric group")
+
+			if slices.Contains(excludeJobsSlice, jobLabel) {
+				metricLog.Debug("Skipping metric job that is excluded")
+				continue
+			}
 
 			if time.Since(pushTime) > *ttl {
 				metricLog.Debug(
