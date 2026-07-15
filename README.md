@@ -19,6 +19,8 @@ These are the available flags for `pushgateway-cleaner`
 ```
 ⇒ ./pushgateway-cleaner --help
 Usage of ./pushgateway-cleaner:
+  -exclude-jobs string
+    	Jobs to exclude from cleanup, comma separated
   -pushgateway-url string
         Pushgateway URL (default "http://localhost:9091")
   -sync-period duration
